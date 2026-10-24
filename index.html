@@ -7,38 +7,66 @@
 <meta name="robots" content="noindex">
 <title>Iconec · Motion</title>
 <style>
-  :root { --bg:#F0F0F0; --ink:#111111; --muted:#6B6B6B; --chip:rgba(255,255,255,.72); --line:rgba(0,0,0,.08); --on:#111111; --on-ink:#FFFFFF; }
+  :root { --bg:#F0F0F0; --ink:#111111; --chip:rgba(255,255,255,.72); --line:rgba(0,0,0,.08); --on:#111111; --on-ink:#FFFFFF;
+    --out:cubic-bezier(.22,1,.36,1); --in:cubic-bezier(.4,0,1,1); }
   body[data-mode="detail"] { --bg:#FFFFFF; --chip:rgba(0,0,0,.04); }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; }
-  body { background:var(--film-bg, var(--bg)); color:var(--ink); transition:background-color .3s ease-out;
+  body { background:var(--film-bg, var(--bg)); color:var(--ink); transition:background-color .32s var(--out);
     font:14px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
   main { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:max(12px, env(safe-area-inset-top)) 16px max(14px, env(safe-area-inset-bottom)); gap:10px; }
   .stage { position:relative; flex:1; min-height:0; width:100%; display:flex; justify-content:center; }
-  video { position:absolute; top:0; left:50%; transform:translateX(-50%); height:100%; width:auto; max-width:100%; object-fit:contain; opacity:0; transition:opacity .3s ease-out;
+
+  /* the films: the one leaving eases in and fades (200 ms); the one arriving eases out and settles from 98.5 % (320 ms, 80 ms later) */
+  video { position:absolute; top:0; left:50%; height:100%; width:auto; max-width:100%; object-fit:contain;
+    opacity:0; transform:translateX(-50%) scale(.985); transform-origin:50% 50%;
+    transition:opacity .2s var(--in), transform .2s var(--in);
     /* soft edges so the crop never shows a hard line through the phone's shadow */
     -webkit-mask-image:linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent), linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
     -webkit-mask-composite:source-in; mask-image:linear-gradient(to bottom, transparent, #000 3%, #000 97%, transparent), linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
     mask-composite:intersect; }
-  video.on { opacity:1; }
-  .seg { display:inline-flex; padding:3px; border-radius:999px; background:var(--chip); border:1px solid var(--line); }
-  .seg button { border:0; background:transparent; }
-  nav { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; min-height:34px; }
+  video.on { opacity:1; transform:translateX(-50%) scale(1); transition:opacity .32s var(--out) .08s, transform .32s var(--out) .08s; }
+
   button { appearance:none; border:1px solid var(--line); background:var(--chip); color:var(--ink); font:inherit;
-    padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap; transition:background-color .15s ease-out, color .15s ease-out; }
+    padding:7px 14px; border-radius:999px; cursor:pointer; white-space:nowrap;
+    transition:background-color .18s var(--out), color .18s var(--out), border-color .18s var(--out), transform .1s var(--out); }
   button[aria-pressed="true"] { background:var(--on); color:var(--on-ink); border-color:var(--on); }
   button:active { transform:scale(.98); }
   button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+
+  /* the toggle: one pill that slides under the chosen label */
+  .seg { position:relative; display:inline-flex; padding:3px; border-radius:999px; background:var(--chip); border:1px solid var(--line);
+    transition:background-color .32s var(--out); }
+  .seg .thumb { position:absolute; top:3px; bottom:3px; left:0; border-radius:999px; background:var(--on);
+    transition:transform .28s var(--out), width .28s var(--out); }
+  .seg.still .thumb { transition:none; }
+  .seg button { position:relative; border:0; background:transparent; transition:color .2s var(--out), transform .1s var(--out); }
+  .seg button[aria-pressed="true"] { background:transparent; color:var(--on-ink); }
+
+  /* the variant buttons: the old set fades out (120 ms, ease-in), the new set rises in 30 ms apart (ease-out) */
+  nav { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; min-height:34px; transition:opacity .12s var(--in); }
+  nav.leaving { opacity:0; }
+  nav button { transition:background-color .18s var(--out), color .18s var(--out), border-color .18s var(--out),
+    opacity .26s var(--out) calc(var(--i, 0) * 30ms), transform .26s var(--out) calc(var(--i, 0) * 30ms); }
+  nav button.entering { opacity:0; transform:translateY(6px); }
+
+  /* Reduce Motion: plain short crossfades, no movement */
+  @media (prefers-reduced-motion: reduce) {
+    video, video.on { transform:translateX(-50%) !important; transition:opacity .2s ease-in-out !important; }
+    .seg .thumb { transition:none !important; }
+    nav button.entering { transform:none !important; }
+  }
 </style>
 </head>
 <body data-mode="splash">
 <main>
-  <div class="seg" role="group" aria-label="Flow">
+  <div class="seg still" role="group" aria-label="Flow">
+    <span class="thumb" aria-hidden="true"></span>
     <button data-mode="splash" aria-pressed="true">Splash</button>
     <button data-mode="detail" aria-pressed="false">Product detail</button>
   </div>
   <div class="stage">
-    <video id="splash" class="on" src="splash.mp4" autoplay muted loop playsinline preload="auto" aria-label="Splash animation options"></video>
+    <video id="splash" src="splash.mp4" muted loop playsinline preload="auto" aria-label="Splash animation options"></video>
     <video id="detail" src="product-detail.mp4" muted loop playsinline preload="auto" aria-label="Product detail transition options"></video>
   </div>
   <nav id="variants" aria-label="Variants"></nav>
@@ -51,16 +79,16 @@
   };
   const vids = { splash: document.getElementById('splash'), detail: document.getElementById('detail') };
   const nav = document.getElementById('variants');
-  let mode = 'splash', loopIdx = -1;
+  const seg = document.querySelector('.seg'), thumb = seg.querySelector('.thumb');
+  let mode = null, loopIdx = -1, swap = 0;
 
   // the page takes each film's own decoded corner colour as its background, so the video's edge never shows
   // (browsers decode video colour slightly differently from CSS colour)
   const filmBg = {};
   function sampleBg(m) {
-    const vid = vids[m];
     try {
       const c = document.createElement('canvas'); c.width = 8; c.height = 8;
-      const g = c.getContext('2d'); g.drawImage(vid, 0, 0, 8, 8, 0, 0, 8, 8);
+      const g = c.getContext('2d'); g.drawImage(vids[m], 0, 0, 8, 8, 0, 0, 8, 8);
       const p = g.getImageData(2, 2, 1, 1).data;
       filmBg[m] = 'rgb(' + p[0] + ',' + p[1] + ',' + p[2] + ')';
     } catch (e) { return; }
@@ -71,22 +99,32 @@
   function v() { return vids[mode]; }
   function buttons() { return Array.from(nav.querySelectorAll('button')); }
 
-  function build() {
+  // slide the toggle's pill under the chosen label
+  function moveThumb() {
+    const b = seg.querySelector('button[aria-pressed="true"]');
+    thumb.style.width = b.offsetWidth + 'px';
+    thumb.style.transform = 'translateX(' + b.offsetLeft + 'px)';
+  }
+
+  function build(animate) {
     nav.innerHTML = '';
     FILMS[mode].forEach(([name], i) => {
       const b = document.createElement('button');
       b.textContent = name;
       b.setAttribute('aria-pressed', 'false');
+      b.style.setProperty('--i', i);
+      if (animate) b.classList.add('entering');
       // first tap loops that option on its own; tapping it again plays them all
       b.addEventListener('click', () => {
         loopIdx = loopIdx === i ? -1 : i;
-        v().currentTime = loopIdx < 0 ? FILMS[mode][i][1] : FILMS[mode][loopIdx][1];
+        v().currentTime = FILMS[mode][loopIdx < 0 ? i : loopIdx][1];
         v().play();
         mark();
       });
       nav.appendChild(b);
     });
     mark();
+    if (animate) requestAnimationFrame(() => requestAnimationFrame(() => buttons().forEach(b => b.classList.remove('entering'))));
   }
   // the pressed button follows the playhead, or stays on the looped option
   function mark() {
@@ -104,22 +142,31 @@
     if (vid.requestVideoFrameCallback) vid.requestVideoFrameCallback(() => tick(g)); else requestAnimationFrame(() => tick(g));
   }
 
-  function setMode(m, push) {
-    if (m === mode && nav.childElementCount) return;
-    vids[mode].pause();
-    vids[mode].classList.remove('on');
+  function setMode(m, animate) {
+    if (m === mode) return;
+    const old = mode ? vids[mode] : null, n = ++swap;
     mode = m; loopIdx = -1;
     document.body.dataset.mode = m;
     if (filmBg[m]) document.body.style.setProperty('--film-bg', filmBg[m]); else document.body.style.removeProperty('--film-bg');
-    document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    seg.querySelectorAll('button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
+    moveThumb();
+    // the old film eases out and pauses once it is gone; the new one starts from its beginning as it fades in
+    if (old) { old.classList.remove('on'); setTimeout(() => { if (n === swap) old.pause(); }, 220); }
     const vid = v();
-    vid.currentTime = 0; vid.classList.add('on'); vid.play();
-    if (push) history.replaceState(null, '', m === 'detail' ? '#product-detail' : '#splash');
-    build();
+    vid.currentTime = 0; vid.play(); vid.classList.add('on');
+    if (animate) history.replaceState(null, '', m === 'detail' ? '#product-detail' : '#splash');
+    if (animate && nav.childElementCount) {
+      nav.classList.add('leaving');
+      setTimeout(() => { if (n !== swap) return; build(true); nav.classList.remove('leaving'); }, 120);
+    } else build(false);
     tick(++gen);
   }
-  document.querySelectorAll('.seg button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
+  seg.querySelectorAll('button').forEach(b => b.addEventListener('click', () => setMode(b.dataset.mode, true)));
   setMode(location.hash === '#product-detail' ? 'detail' : 'splash', false);
+  // place the pill without animating on first paint, then let it slide from then on
+  requestAnimationFrame(() => requestAnimationFrame(() => seg.classList.remove('still')));
+  addEventListener('resize', moveThumb);
+  document.fonts && document.fonts.ready.then(moveThumb);
 </script>
 </body>
 </html>
