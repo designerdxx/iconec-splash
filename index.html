@@ -7,11 +7,11 @@
 <meta name="robots" content="noindex">
 <title>Iconec · Motion</title>
 <style>
-  :root { --bg:#EEEEEE; --ink:#111111; --muted:#6B6B6B; --chip:rgba(255,255,255,.72); --line:rgba(0,0,0,.08); --on:#111111; --on-ink:#FFFFFF; }
+  :root { --bg:#F0F0F0; --ink:#111111; --muted:#6B6B6B; --chip:rgba(255,255,255,.72); --line:rgba(0,0,0,.08); --on:#111111; --on-ink:#FFFFFF; }
   body[data-mode="detail"] { --bg:#FFFFFF; --chip:rgba(0,0,0,.04); }
   * { box-sizing:border-box; }
   html, body { margin:0; height:100%; }
-  body { background:var(--bg); color:var(--ink); transition:background-color .3s ease-out;
+  body { background:var(--film-bg, var(--bg)); color:var(--ink); transition:background-color .3s ease-out;
     font:14px/1.3 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
   main { height:100dvh; display:flex; flex-direction:column; align-items:center; padding:max(12px, env(safe-area-inset-top)) 16px max(14px, env(safe-area-inset-bottom)); gap:10px; }
   .stage { position:relative; flex:1; min-height:0; width:100%; display:flex; justify-content:center; }
@@ -52,6 +52,21 @@
   const vids = { splash: document.getElementById('splash'), detail: document.getElementById('detail') };
   const nav = document.getElementById('variants');
   let mode = 'splash', loopIdx = -1;
+
+  // the page takes each film's own decoded corner colour as its background, so the video's edge never shows
+  // (browsers decode video colour slightly differently from CSS colour)
+  const filmBg = {};
+  function sampleBg(m) {
+    const vid = vids[m];
+    try {
+      const c = document.createElement('canvas'); c.width = 8; c.height = 8;
+      const g = c.getContext('2d'); g.drawImage(vid, 0, 0, 8, 8, 0, 0, 8, 8);
+      const p = g.getImageData(2, 2, 1, 1).data;
+      filmBg[m] = 'rgb(' + p[0] + ',' + p[1] + ',' + p[2] + ')';
+    } catch (e) { return; }
+    if (m === mode) document.body.style.setProperty('--film-bg', filmBg[m]);
+  }
+  Object.keys(vids).forEach(m => vids[m].addEventListener('loadeddata', () => sampleBg(m)));
 
   function v() { return vids[mode]; }
   function buttons() { return Array.from(nav.querySelectorAll('button')); }
@@ -95,6 +110,7 @@
     vids[mode].classList.remove('on');
     mode = m; loopIdx = -1;
     document.body.dataset.mode = m;
+    if (filmBg[m]) document.body.style.setProperty('--film-bg', filmBg[m]); else document.body.style.removeProperty('--film-bg');
     document.querySelectorAll('.seg button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.mode === m)));
     const vid = v();
     vid.currentTime = 0; vid.classList.add('on'); vid.play();
