@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Iconec · Splash options</title>
+<meta name="robots" content="noindex">
+<style>
+  :root { --desk:#F0F0F0; --ink:#111; --muted:#6B6B6B; --line:#DCDCDC; --chip:#FFFFFF; --on:#111; --on-ink:#FFF; }
+  @media (prefers-color-scheme: dark) { :root { --desk:#161616; --ink:#F2F2F2; --muted:#9A9A9A; --line:#2C2C2C; --chip:#1F1F1F; --on:#F2F2F2; --on-ink:#111; } }
+  * { box-sizing:border-box; }
+  html, body { margin:0; height:100%; background:var(--desk); color:var(--ink);
+    font:15px/1.4 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif; -webkit-font-smoothing:antialiased; }
+  main { min-height:100%; display:flex; flex-direction:column; align-items:center; gap:16px; padding:20px 16px 24px; }
+  header { text-align:center; }
+  h1 { margin:0; font-size:17px; font-weight:600; letter-spacing:-.01em; }
+  header p { margin:2px 0 0; color:var(--muted); font-size:13px; }
+  video { display:block; height:min(72vh, 1920px); max-width:100%; aspect-ratio:1080 / 1920; background:var(--desk); border-radius:12px; }
+  nav { display:flex; flex-wrap:wrap; justify-content:center; gap:6px; max-width:640px; }
+  button { appearance:none; border:1px solid var(--line); background:var(--chip); color:var(--ink); font:inherit; font-size:13px;
+    padding:7px 12px; border-radius:999px; cursor:pointer; transition:background-color .15s ease-out, color .15s ease-out; }
+  button[aria-pressed="true"] { background:var(--on); color:var(--on-ink); border-color:var(--on); }
+  button:active { transform:scale(.98); }
+  button:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .row { display:flex; gap:6px; align-items:center; }
+  .sep { width:1px; height:20px; background:var(--line); margin:0 4px; }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Iconec · Splash options</h1>
+    <p>60 fps · pick one to loop it on its own</p>
+  </header>
+  <video id="v" src="splash-options.mp4" autoplay muted loop playsinline preload="auto"></video>
+  <nav aria-label="Options">
+    <button data-i="-1" aria-pressed="true">All</button>
+    <button data-i="0" aria-pressed="false">A · Through the O</button>
+    <button data-i="1" aria-pressed="false">C · Editorial</button>
+    <button data-i="2" aria-pressed="false">E · Focus</button>
+    <button data-i="3" aria-pressed="false">F · Rise</button>
+    <button data-i="4" aria-pressed="false">G · Bloom</button>
+  </nav>
+  <div class="row" role="group" aria-label="Playback">
+    <button id="play" aria-pressed="false">Pause</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button data-rate="1" aria-pressed="true">1×</button>
+    <button data-rate="0.5" aria-pressed="false">0.5×</button>
+    <button data-rate="0.25" aria-pressed="false">0.25×</button>
+    <span class="sep" aria-hidden="true"></span>
+    <button id="sound" aria-pressed="false">Sound off</button>
+  </div>
+</main>
+<script>
+  // start and end of each option in the film, in seconds
+  const SEG = [[0, 3.0], [3.0, 6.4], [6.4, 9.6], [9.6, 13.2], [13.2, 16.2]];
+  const v = document.getElementById('v');
+  let seg = null;
+
+  function pick(group, el) {
+    document.querySelectorAll(group).forEach(b => b.setAttribute('aria-pressed', String(b === el)));
+  }
+  // loop the chosen option, checked on every video frame so the jump back is exact
+  function watch() {
+    if (seg && v.currentTime >= seg[1] - 0.02) v.currentTime = seg[0];
+    if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(watch); else requestAnimationFrame(watch);
+  }
+  watch();
+
+  document.querySelectorAll('nav button').forEach(b => b.addEventListener('click', () => {
+    const i = Number(b.dataset.i);
+    seg = i < 0 ? null : SEG[i];
+    v.currentTime = seg ? seg[0] : 0;
+    v.play();
+    pick('nav button', b);
+  }));
+  document.querySelectorAll('[data-rate]').forEach(b => b.addEventListener('click', () => {
+    v.playbackRate = Number(b.dataset.rate);
+    pick('[data-rate]', b);
+  }));
+  const play = document.getElementById('play');
+  play.addEventListener('click', () => { v.paused ? v.play() : v.pause(); });
+  v.addEventListener('play', () => { play.textContent = 'Pause'; });
+  v.addEventListener('pause', () => { play.textContent = 'Play'; });
+  const sound = document.getElementById('sound');
+  sound.addEventListener('click', () => {
+    v.muted = !v.muted;
+    sound.textContent = v.muted ? 'Sound off' : 'Sound on';
+    sound.setAttribute('aria-pressed', String(!v.muted));
+  });
+</script>
+</body>
+</html>
